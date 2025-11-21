@@ -1,0 +1,23 @@
+body {
+  background-color: #f2efe7; /* warm beige */
+  font-family: 'Poppins', sans-serif;
+  color: #3e2f1c;
+}
+
+.card, .bg-white, form, table {
+  background-color: #fffdf7 !important;
+  border-radius: 10px;
+}
+
+.sidebar, .bg-success {
+  background-color: #6a994e !important; /* olive green */
+}
+
+h2, h3 {
+  color: #4c6b37;
+}
+
+button.bg-blue-600, .btn-primary {
+  background-color: #8ab17d !important;
+  border: none;
+}
