@@ -2,55 +2,32 @@ import React, { useState } from "react";
 import { NavLink } from "react-router-dom";
 import "bootstrap-icons/font/bootstrap-icons.css";
 
-export default function Sidebar() {
-  const [open, setOpen] = useState(false);
-
+export default function Sidebar({ toggleSidebar, open }) {
+  // close sidebar only on mobile
   const closeSidebar = () => {
-    if (window.innerWidth <= 768) setOpen(false);
+    if (window.innerWidth <= 768) toggleSidebar(false);
   };
 
   return (
     <>
-      {/* Mobile Top Bar (only visible on screens <768px) */}
-      <div className="d-md-none d-flex justify-content-between align-items-center px-3 py-2 bg-success text-white shadow-sm">
-        <span className="fs-5 fw-bold">🌿 Varashree Farm</span>
+      {/* MOBILE TOP BAR */}
+     
 
-        <button
-          className="btn btn-outline-light"
-          onClick={() => setOpen(true)}
-        >
-          <i className="bi bi-list fs-3"></i>
-        </button>
-      </div>
-
-      {/* Screen Overlay for mobile */}
+      {/* MOBILE OVERLAY */}
       {open && (
-        <div
-          className="sidebar-overlay d-md-none"
-          onClick={closeSidebar}
-        ></div>
+        <div className="sidebar-overlay d-md-none" onClick={() => toggleSidebar(false)}></div>
       )}
 
-      {/* Your ORIGINAL SIDEBAR kept intact */}
-      <div
-        className={`sidebar-container ${open ? "sidebar-open" : ""}`}
-      >
+      {/* SIDEBAR */}
+      <div className={`sidebar-container ${open ? "sidebar-open" : ""}`}>
         <div
-          className="d-flex flex-column flex-shrink-0 p-3 bg-success text-white shadow"
+          className="d-flex flex-column flex-shrink-0 p-3 bg-success text-white shadow " 
+          
           style={{ width: "250px", minHeight: "100vh" }}
         >
-          <a
-            href="/"
-            className="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none"
-            onClick={closeSidebar}
-          >
-            <span className="fs-4 fw-bold">🌿 Varashree Farm</span>
-          </a>
-
-          <hr className="border-light" />
+          <span className="fs-4 fw-bold mb-3  d-md-block">🌿 Varashree Farm</span>
 
           <ul className="nav nav-pills flex-column mb-auto">
-
             <li className="nav-item">
               <NavLink
                 to="/"
@@ -58,9 +35,7 @@ export default function Sidebar() {
                 onClick={closeSidebar}
                 className={({ isActive }) =>
                   `nav-link text-white ${
-                    isActive
-                      ? "active bg-light text-success fw-bold"
-                      : "text-white"
+                    isActive ? "active bg-light text-success fw-bold" : "text-white"
                   }`
                 }
               >
@@ -74,9 +49,7 @@ export default function Sidebar() {
                 onClick={closeSidebar}
                 className={({ isActive }) =>
                   `nav-link text-white ${
-                    isActive
-                      ? "active bg-light text-success fw-bold"
-                      : "text-white"
+                    isActive ? "active bg-light text-success fw-bold" : "text-white"
                   }`
                 }
               >
@@ -90,9 +63,7 @@ export default function Sidebar() {
                 onClick={closeSidebar}
                 className={({ isActive }) =>
                   `nav-link text-white ${
-                    isActive
-                      ? "active bg-light text-success fw-bold"
-                      : "text-white"
+                    isActive ? "active bg-light text-success fw-bold" : "text-white"
                   }`
                 }
               >
@@ -106,9 +77,7 @@ export default function Sidebar() {
                 onClick={closeSidebar}
                 className={({ isActive }) =>
                   `nav-link text-white ${
-                    isActive
-                      ? "active bg-light text-success fw-bold"
-                      : "text-white"
+                    isActive ? "active bg-light text-success fw-bold" : "text-white"
                   }`
                 }
               >
@@ -122,9 +91,7 @@ export default function Sidebar() {
                 onClick={closeSidebar}
                 className={({ isActive }) =>
                   `nav-link text-white ${
-                    isActive
-                      ? "active bg-light text-success fw-bold"
-                      : "text-white"
+                    isActive ? "active bg-light text-success fw-bold" : "text-white"
                   }`
                 }
               >
@@ -138,27 +105,22 @@ export default function Sidebar() {
                 onClick={closeSidebar}
                 className={({ isActive }) =>
                   `nav-link text-white ${
-                    isActive
-                      ? "active bg-light text-success fw-bold"
-                      : "text-white"
+                    isActive ? "active bg-light text-success fw-bold" : "text-white"
                   }`
                 }
               >
                 <i className="bi bi-bar-chart me-2"></i> Reports
               </NavLink>
             </li>
-
           </ul>
 
-          <hr className="border-light" />
-
-          <div className="text-center small opacity-75">
+          <div className="text-center small opacity-75 mt-auto">
             © 2025 Varashree Nursery
           </div>
         </div>
       </div>
 
-      {/* Push content to the right on desktops */}
+      {/* DESKTOP SPACE FIXER */}
       <div className="d-none d-md-block" style={{ width: "250px" }}></div>
     </>
   );

@@ -5,16 +5,22 @@ const API = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
-// ✅ Attach Authorization header safely
+// FIXED INTERCEPTOR 🔥
 API.interceptors.request.use((config) => {
-  try {
-    const token = localStorage.getItem("token"); // we store token separately
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-  } catch (err) {
-    console.warn("⚠️ Failed to read auth token:", err);
+  const token = localStorage.getItem("token");
+
+  // ❌ Do NOT add Authorization for login/register
+  if (
+    config.url.includes("/auth/login") ||
+    config.url.includes("/auth/register")
+  ) {
+    return config;
   }
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
   return config;
 });
 

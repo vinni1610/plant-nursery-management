@@ -13,7 +13,6 @@ export default function PlantCatalog() {
     loadPlants();
   }, []);
 
-  // ✅ Load all plants
   const loadPlants = async () => {
     try {
       const res = await API.get("/plants");
@@ -24,7 +23,6 @@ export default function PlantCatalog() {
     }
   };
 
-  // 🔍 Search filter
   useEffect(() => {
     const q = search.toLowerCase();
     const f = plants.filter(
@@ -36,15 +34,14 @@ export default function PlantCatalog() {
     setFiltered(f);
   }, [search, plants]);
 
-  // 📥 Export Excel
   const downloadExcel = () => {
     const data = plants.map((p, i) => ({
       "Sl.No": i + 1,
       "Plant Name": p.plantName,
       "Botanical Name": p.botanicalName,
-      "Category": p.category,
+      Category: p.category,
       "Price (₹)": p.price,
-      "Stock": p.stock,
+      Stock: p.stock,
     }));
 
     const wb = XLSX.utils.book_new();
@@ -53,7 +50,6 @@ export default function PlantCatalog() {
     XLSX.writeFile(wb, "Plant_Catalog.xlsx");
   };
 
-  // 📄 Export PDF
   const downloadPDF = () => {
     try {
       const doc = new jsPDF();
@@ -81,69 +77,102 @@ export default function PlantCatalog() {
     }
   };
 
-  return (
-    <div className="container mt-4">
-      {/* Header + Search + Download Buttons */}
-      <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
-        <h2 className="fw-semibold text-success">🌿 Plant Catalog</h2>
+ return (
+  <div className="container-fluid px-2 px-sm-3 px-md-4 mt-3">
 
-        <div className="d-flex gap-2 mt-2 mt-md-0">
+    {/* Header Row */}
+    <div className="row g-3 align-items-center mb-3">
+      <div className="col-12 col-md-4">
+        <h2 className="fw-semibold text-success text-center text-md-start">
+          🌿 Plant Catalog
+        </h2>
+      </div>
+
+      {/* Search + Buttons */}
+      <div className="col-12 col-md-8">
+        <div className="d-flex flex-column flex-sm-row justify-content-end align-items-stretch align-items-sm-center gap-2">
+
           <input
             type="text"
             className="form-control"
-            style={{ width: "250px" }}
             placeholder="Search plants..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
 
-          {/* Download Buttons */}
-          <button className="btn btn-outline-success" onClick={downloadExcel}>
+          <button
+            className="btn btn-outline-success w-100 w-sm-auto"
+            onClick={downloadExcel}
+          >
             📥 Excel
           </button>
-          <button className="btn btn-outline-danger" onClick={downloadPDF}>
+
+          <button
+            className="btn btn-outline-danger w-100 w-sm-auto"
+            onClick={downloadPDF}
+          >
             📄 PDF
           </button>
         </div>
       </div>
-
-      {/* Data Table */}
-      <div className="table-responsive card shadow-sm">
-        <table className="table table-hover table-bordered align-middle mb-0">
-          <thead className="table-success">
-            <tr>
-              <th>Sl.No</th>
-              <th>Plant Name</th>
-              <th>Botanical Name</th>
-              <th>Category</th>
-              <th>Price (₹)</th>
-              <th>Stock</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {filtered.map((p, idx) => (
-              <tr key={p.id}>
-                <td>{idx + 1}</td>
-                <td>{p.plantName}</td>
-                <td>{p.botanicalName || "—"}</td>
-                <td>{p.category || "—"}</td>
-                <td>₹ {p.price?.toFixed(2)}</td>
-                <td>{p.stock}</td>
-              </tr>
-            ))}
-
-            {filtered.length === 0 && (
-              <tr>
-                <td colSpan="6" className="text-center text-muted py-4">
-                  <i className="bi bi-flower2 fs-2 d-block mb-2"></i>
-                  No plants found.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
     </div>
-  );
+
+    {/* Table Wrapper */}
+   <div className="card shadow-sm">
+
+  {/* FORCED Horizontal Scrolling (works on all phones) */}
+  <div
+    className="table-responsive"
+    style={{
+      overflowX: "auto",
+      overflowY: "hidden",
+      display: "block",
+      width: "100%",
+      maxWidth: "100vw",
+      whiteSpace: "nowrap",
+      WebkitOverflowScrolling: "touch" // smooth iOS scrolling
+    }}
+  >
+    <table className="table table-hover table-bordered align-middle mb-0">
+      <thead className="table-success">
+        <tr>
+          <th>Sl.No</th>
+          <th>Plant Name</th>
+          <th>Botanical Name</th>
+          <th>Category</th>
+          <th>Price (₹)</th>
+          <th>Stock</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {filtered.map((p, idx) => (
+          <tr key={p.id}>
+            <td>{idx + 1}</td>
+            <td className="text-wrap">{p.plantName}</td>
+            <td className="text-wrap">{p.botanicalName || "—"}</td>
+            <td>{p.category || "—"}</td>
+            <td>₹ {p.price?.toFixed(2)}</td>
+            <td>{p.stock}</td>
+          </tr>
+        ))}
+
+        {filtered.length === 0 && (
+          <tr>
+            <td colSpan="6" className="text-center text-muted py-4">
+              <i className="bi bi-flower2 fs-2 d-block mb-2"></i>
+              No plants found.
+            </td>
+          </tr>
+        )}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+
+  </div>
+);
+
 }

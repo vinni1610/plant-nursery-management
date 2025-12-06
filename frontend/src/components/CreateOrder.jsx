@@ -13,22 +13,21 @@ export default function CreateOrder() {
 
   const navigate = useNavigate();
 
-  // Fetch all plants
+  // Fetch plant list
   useEffect(() => {
     API.get('/plants')
       .then((res) => setPlants(res.data))
       .catch(console.error);
   }, []);
 
-  // Add an item row
+  // Add row
   const addItem = () => {
     setItems([...items, { plantId: '', plantName: '', rate: '', quantity: 1, total: 0 }]);
   };
 
-  // Remove an item row
+  // Remove row
   const removeItem = (idx) => {
-    const next = items.filter((_, i) => i !== idx);
-    setItems(next);
+    setItems(items.filter((_, i) => i !== idx));
   };
 
   // When plant selected
@@ -49,7 +48,7 @@ export default function CreateOrder() {
     setItems(next);
   };
 
-  // Qty update
+  // Update quantity
   const onQtyChange = (idx, qty) => {
     const next = [...items];
     next[idx].quantity = Number(qty);
@@ -57,18 +56,38 @@ export default function CreateOrder() {
     setItems(next);
   };
 
-  // Totals (NO TAX)
+  // Totals
   const subTotal = items.reduce((sum, i) => sum + i.total, 0);
   const grandTotal = subTotal;
+
+  // ---------------------------------------------
+  // ✅ Function to DOWNLOAD the Invoice PDF
+  // ---------------------------------------------
+  const downloadInvoice = async (orderId) => {
+    try {
+      const response = await API.get(`/orders/${orderId}/invoice`, {
+        responseType: "blob",
+      });
+
+      const blob = new Blob([response.data], { type: "application/pdf" });
+      const link = document.createElement("a");
+      link.href = window.URL.createObjectURL(blob);
+      link.download = `invoice_${orderId}.pdf`;
+      link.click();
+      link.remove();
+
+    } catch (err) {
+      console.error("❌ Invoice download failed:", err);
+      alert("Failed to download invoice");
+    }
+  };
 
   // Submit order
   const submit = async (e) => {
     e.preventDefault();
-    if (items.length === 0) return alert('Please add at least one plant.');
 
-    // Check if all plants are selected
-    const hasEmptyPlant = items.some((it) => !it.plantId);
-    if (hasEmptyPlant) return alert('Please select a plant for all items.');
+    if (items.length === 0) return alert('Add at least one plant');
+    if (items.some((i) => !i.plantId)) return alert('Please select all plants');
 
     const payload = {
       orderNo: `ORD-${Date.now()}`,
@@ -85,16 +104,20 @@ export default function CreateOrder() {
     try {
       const res = await API.post('/orders', payload);
 
-      if (res.data?.invoiceUrl) {
-        const invoiceUrl = `${API.defaults.baseURL}${res.data.invoiceUrl}`;
-        window.open(invoiceUrl, '_blank');
+      const orderId = res?.data?.order?.id;
+      const invoiceUrl = res?.data?.invoiceDownloadUrl;
+
+      if (orderId && invoiceUrl) {
+        // Download the invoice via blob
+        await downloadInvoice(orderId);
       }
 
-      alert('✅ Order created successfully!');
-      navigate('/');
+      alert("Order created successfully!");
+      navigate("/");
+
     } catch (err) {
       console.error(err);
-      alert('❌ Error: ' + (err?.response?.data?.error || err.message));
+      alert("❌ Error: " + (err?.response?.data?.error || err.message));
     }
   };
 
@@ -103,74 +126,61 @@ export default function CreateOrder() {
       <h2 className="mb-4 text-success">Create Order</h2>
 
       <form onSubmit={submit} className="card p-4 shadow-sm">
-        
         {/* Customer Info */}
         <div className="row mb-3">
           <div className="col-md-4">
             <label className="form-label">Customer Name *</label>
-            <input
-              type="text"
-              className="form-control"
+            <input type="text" className="form-control"
               value={form.customerName}
               onChange={(e) => setForm({ ...form, customerName: e.target.value })}
-              required
-            />
+              required />
           </div>
 
           <div className="col-md-4">
             <label className="form-label">Customer Contact</label>
-            <input
-              type="text"
-              className="form-control"
+            <input type="text" className="form-control"
               value={form.customerContact}
               onChange={(e) => setForm({ ...form, customerContact: e.target.value })}
-            />
+              />
           </div>
 
           <div className="col-md-4">
             <label className="form-label">Customer Address *</label>
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Enter customer address"
+            <input type="text" className="form-control"
               value={form.customerAddress}
               onChange={(e) => setForm({ ...form, customerAddress: e.target.value })}
-              required
-            />
+              required />
           </div>
         </div>
 
-        {/* Order Items */}
+        {/* Items section */}
         <div className="mb-3">
           <div className="d-flex justify-content-between align-items-center mb-3">
-            <h5 className="mb-0">Order Items</h5>
+            <h5>Order Items</h5>
             <button type="button" className="btn btn-primary" onClick={addItem}>
               + Add Plant
             </button>
           </div>
 
-          {/* Column Headers */}
           {items.length > 0 && (
-            <div className="row g-2 mb-2 fw-bold text-muted">
+            <div className="row g-2 fw-bold text-muted mb-2">
               <div className="col-md-4">Plant</div>
-              <div className="col-md-2">Rate (₹)</div>
-              <div className="col-md-2">Quantity</div>
-              <div className="col-md-2">Total (₹)</div>
+              <div className="col-md-2">Rate</div>
+              <div className="col-md-2">Qty</div>
+              <div className="col-md-2">Total</div>
               <div className="col-md-2">Action</div>
             </div>
           )}
 
           {items.map((it, idx) => (
             <div key={idx} className="row g-2 mb-2 align-items-center">
-              
               <div className="col-md-4">
                 <select
                   className="form-select"
-                  value={it.plantId || ''}
+                  value={it.plantId}
                   onChange={(e) => onPlantChange(idx, e.target.value)}
-                  required
-                >
-                  <option value="">-- Select Plant --</option>
+                  required>
+                  <option value="">-- Select --</option>
                   {plants.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.plantName} (Stock: {p.stock})
@@ -180,64 +190,37 @@ export default function CreateOrder() {
               </div>
 
               <div className="col-md-2">
-                <input 
-                  type="text" 
-                  className="form-control" 
-                  readOnly 
-                  value={it.rate !== '' ? it.rate : ''} 
-                  placeholder="Rate"
-                />
+                <input className="form-control" readOnly value={it.rate || ""} />
               </div>
 
               <div className="col-md-2">
-                <input
-                  type="number"
-                  className="form-control"
+                <input type="number" className="form-control"
                   min="1"
                   value={it.quantity}
-                  onChange={(e) => onQtyChange(idx, e.target.value)}
-                />
+                  onChange={(e) => onQtyChange(idx, e.target.value)} />
               </div>
 
               <div className="col-md-2">
-                <input
-                  type="text"
-                  className="form-control"
-                  value={it.total > 0 ? it.total.toFixed(2) : ''}
-                  placeholder="Total"
-                  readOnly
-                />
+                <input className="form-control" readOnly value={it.total.toFixed(2)} />
               </div>
 
               <div className="col-md-2">
-                <button
-                  type="button"
-                  className="btn btn-outline-danger btn-sm"
-                  onClick={() => removeItem(idx)}
-                >
-                  ✕ Remove
-                </button>
+                <button type="button" className="btn btn-outline-danger btn-sm"
+                  onClick={() => removeItem(idx)}>✕ Remove</button>
               </div>
-
             </div>
           ))}
-
-          {items.length === 0 && (
-            <div className="text-center text-muted py-4 border rounded">
-              <p className="mb-0">No items added. Click "+ Add Plant" to start.</p>
-            </div>
-          )}
         </div>
 
         {/* Totals */}
         <div className="text-end border-top pt-3">
-          <p className="mb-1"><strong>Sub Total:</strong> ₹ {subTotal.toFixed(2)}</p>
+          <p><strong>Subtotal:</strong> ₹ {subTotal.toFixed(2)}</p>
           <p className="fs-5 fw-bold text-success">
             Grand Total: ₹ {grandTotal.toFixed(2)}
           </p>
         </div>
 
-        <button type="submit" className="btn btn-success mt-3" disabled={items.length === 0}>
+        <button className="btn btn-success mt-3" disabled={items.length === 0}>
           Place Order
         </button>
       </form>

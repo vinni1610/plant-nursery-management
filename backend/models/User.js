@@ -8,21 +8,21 @@ const User = sequelize.define("User", {
     type: DataTypes.STRING,
     allowNull: false,
   },
+
   email: {
     type: DataTypes.STRING,
-    unique: true,
     allowNull: false,
-    validate: {
-      isEmail: true,
-    },
+    unique: true,
+    validate: { isEmail: true },
   },
+
   password: {
     type: DataTypes.STRING,
     allowNull: false,
   },
 });
 
-// ✅ Automatically hash password before saving
+// 🔐 Hash password before save
 User.beforeCreate(async (user) => {
   if (user.password) {
     const salt = await bcrypt.genSalt(10);
@@ -30,9 +30,9 @@ User.beforeCreate(async (user) => {
   }
 });
 
-// ✅ Instance method for password check
-User.prototype.comparePassword = async function (enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
+// 🔍 Compare password method
+User.prototype.comparePassword = function (enteredPassword) {
+  return bcrypt.compare(enteredPassword, this.password);
 };
 
 module.exports = User;
