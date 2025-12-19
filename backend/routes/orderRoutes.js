@@ -4,11 +4,15 @@ const PDFDocument = require("pdfkit");
 const { Sequelize } = require("sequelize");   // ✅ FIX ADDED
 const { Order, OrderItem } = require("../models/Order");
 const Plant = require("../models/Plant");
+const path = require("path");
 
 
 // 🔧 Generate PDF invoice and stream to response
 function generateInvoiceStream(order, items, res) {
-  const doc = new PDFDocument({ margin: 40 });
+  const doc = new PDFDocument({
+    size: "A4",
+    margin: 30,
+  });
 
   res.setHeader("Content-Type", "application/pdf");
   res.setHeader(
@@ -18,118 +22,156 @@ function generateInvoiceStream(order, items, res) {
 
   doc.pipe(res);
 
-  // ===== HEADER =====
-  doc.font("Helvetica-Bold").fontSize(18)
-    .text("VARASHREE FARM & NURSERY", { align: "center" });
+  const pageWidth = doc.page.width;
+  const pageHeight = doc.page.height;
 
-  doc.fontSize(10).font("Helvetica")
-    .text("Approved by Department of Horticulture, Government of Karnataka & Government of India",
-      { align: "center" })
-    .text("Spice Board & NHB Approved 3 Star Nursery\nSakebyle, Gajanur Post, Shimoga Tq. & Dist, Karnataka",
-      { align: "center" })
-    .text("Mob: 7892326717, 9449742477, 7892023515 | Email: varashreenursery10@gmail.com",
-      { align: "center" })
-    .moveDown(0.5);
+  // ================= OUTER BORDER =================
+  doc.rect(20, 20, pageWidth - 40, pageHeight - 40).stroke();
 
-  doc.font("Helvetica-Bold").fontSize(12)
-    .text("CASH INVOICE", { align: "center" });
-  doc.moveDown();
+  // ================= HEADER (LOGO + TEXT SAME LINE) =================
+  const logoPath = path.join(__dirname, "../assets/logo.png");
 
-  // ===== CUSTOMER INFO =====
-  doc.font("Helvetica").fontSize(11)
-    .text(`Invoice No: ${order.orderNo}`)
-    .text(`Date: ${new Date(order.createdAt).toLocaleDateString("en-IN")}`)
-    .text(`Customer Name: ${order.customerName}`)
-    .text(`Contact: ${order.customerContact || "—"}`)
-    .text(`Address: ${order.customerAddress || "—"}`)
-    .moveDown(0.5);
+  if (require("fs").existsSync(logoPath)) {
+    doc.image(logoPath, 40, 35, { width: 60 });
+  }
 
-  // ===== TABLE HEADER =====
-  const tableTop = doc.y + 10;
+  doc
+    .font("Helvetica-Bold")
+    .fontSize(16)
+    .text("VARASHREE FARM & NURSERY", 110, 35, { align: "center" });
+
+  doc
+    .font("Helvetica")
+    .fontSize(9)
+    .text(
+      "Approved by Department of Horticulture, Government of Karnataka & Government of India\n" +
+        "Spice Board & NHB Approved 3 Star Nursery\n" +
+        "Sakrebbyle, Gajanur Post, Shimoga Tq. & Dist, Karnataka\n" +
+        "Mob: 7892326717, 9449742477, 7892023515 | Email: varashreenursery10@gmail.com",
+      110,
+      55
+    , { align: "center" });
+
+  // ================= CASH INVOICE BOX =================
+  doc.rect(20, 115, pageWidth - 40, 25).stroke();
+  doc
+    .font("Helvetica-Bold")
+    .fontSize(12)
+    .text("CASH INVOICE", 0, 122, { align: "center" });
+
+  // ================= CUSTOMER DETAILS =================
+  let y = 155;
+  doc.fontSize(10).font("Helvetica");
+  doc.text(`Invoice No : ${order.orderNo}`, 40, y);
+  doc.text(`Date : ${new Date(order.createdAt).toLocaleDateString("en-IN")}`, 350, y);
+
+  y += 15;
+  doc.text(`Customer Name : ${order.customerName}`, 40, y);
+  y += 15;
+  doc.text(`Contact : ${order.customerContact || "-"}`, 40, y);
+  y += 15;
+  doc.text(`Address : ${order.customerAddress || "-"}`, 40, y);
+
+  // ================= TABLE =================
+  y += 25;
+
+  const tableX = 40;
+  const col = {
+    no: 40,
+    item: 80,
+    qty: 300,
+    rate: 360,
+    total: 440,
+  };
+
+  const rowHeight = 22;
+
+  // Table Header
+  doc.rect(tableX, y, pageWidth - 80, rowHeight).stroke();
   doc.font("Helvetica-Bold").fontSize(10);
-  doc.text("No", 50, tableTop);
-  doc.text("Particulars", 100, tableTop);
-  doc.text("Qty", 300, tableTop);
-  doc.text("Rate", 370, tableTop);
-  doc.text("Total", 450, tableTop);
-  doc.moveTo(50, tableTop + 15).lineTo(520, tableTop + 15).stroke();
+  doc.text("No", col.no, y + 6);
+  doc.text("Particulars", col.item, y + 6);
+  doc.text("Qty", col.qty, y + 6);
+  doc.text("Rate", col.rate, y + 6);
+  doc.text("Total", col.total, y + 6);
 
-  // ===== TABLE CONTENT =====
-  let y = tableTop + 25;
+  // Vertical Lines
+  doc.moveTo(col.item - 10, y).lineTo(col.item - 10, y + rowHeight).stroke();
+  doc.moveTo(col.qty - 10, y).lineTo(col.qty - 10, y + rowHeight).stroke();
+  doc.moveTo(col.rate - 10, y).lineTo(col.rate - 10, y + rowHeight).stroke();
+  doc.moveTo(col.total - 10, y).lineTo(col.total - 10, y + rowHeight).stroke();
+
+  y += rowHeight;
+
+  // Table Rows
   doc.font("Helvetica").fontSize(9);
-  items.forEach((item, i) => {
-    doc.text(i + 1, 50, y);
-    doc.text(item.plantName, 100, y, { width: 180 });
-    doc.text(item.quantity.toString(), 300, y);
-    doc.text(` ${parseFloat(item.rate).toFixed(2)}`, 370, y);
-    doc.text(`${parseFloat(item.total).toFixed(2)}`, 450, y);
-    y += 20;
+  items.forEach((it, i) => {
+    doc.rect(tableX, y, pageWidth - 80, rowHeight).stroke();
+
+    doc.text(i + 1, col.no, y + 6);
+    doc.text(it.plantName, col.item, y + 6, { width: 200 });
+    doc.text(it.quantity.toString(), col.qty, y + 6);
+    doc.text(it.rate.toFixed(2), col.rate, y + 6);
+    doc.text(it.total.toFixed(2), col.total, y + 6);
+
+    // Vertical Lines
+    doc.moveTo(col.item - 10, y).lineTo(col.item - 10, y + rowHeight).stroke();
+    doc.moveTo(col.qty - 10, y).lineTo(col.qty - 10, y + rowHeight).stroke();
+    doc.moveTo(col.rate - 10, y).lineTo(col.rate - 10, y + rowHeight).stroke();
+    doc.moveTo(col.total - 10, y).lineTo(col.total - 10, y + rowHeight).stroke();
+
+    y += rowHeight;
   });
 
-  // ===== TOTALS =====
-  doc.moveTo(50, y).lineTo(520, y).stroke();
+  // ================= TOTALS =================
   y += 15;
-  doc.font("Helvetica").fontSize(10);
-  doc.text(`Subtotal:`, 370, y);
-  doc.text(` ${parseFloat(order.subTotal).toFixed(2)}`, 450, y);
-
-  if (order.discount && order.discount > 0) {
-    y += 15;
-    doc.text(`Discount:`, 370, y);
-    doc.text(` ${parseFloat(order.discount).toFixed(2)}`, 450, y);
-  }
-
-  if (order.tax && order.tax > 0) {
-    y += 15;
-    doc.text(`Tax:`, 370, y);
-      doc.text(` ${parseFloat(order.tax).toFixed(2)}`, 450, y);
-  }
+  doc.fontSize(10).font("Helvetica");
+  doc.text("Subtotal :", 340, y);
+  doc.text(order.subTotal.toFixed(2), 440, y);
 
   y += 15;
-  doc.font("Helvetica-Bold").fontSize(11);
-  doc.text(`Grand Total:`, 370, y);
-  doc.text(`${parseFloat(order.grandTotal).toFixed(2)}`, 450, y);
+  doc.font("Helvetica-Bold");
+  doc.text("Grand Total :", 340, y);
+  doc.text(order.grandTotal.toFixed(2), 440, y);
 
-  if (order.paidAmount) {
-    y += 15;
-    doc.font("Helvetica").fontSize(10);
-    doc.text(`Paid Amount:`, 370, y);
-    doc.text(`${parseFloat(order.grandTotal).toFixed(2)}`, 450, y);
+  y += 15;
+  doc.font("Helvetica");
+  doc.text("Paid Amount :", 340, y);
+  doc.text(order.paidAmount.toFixed(2), 440, y);
 
-    const balance = order.grandTotal - order.paidAmount;
-    if (balance > 0) {
-      y += 15;
-      doc.font("Helvetica-Bold");
-      doc.text(`Balance:`, 370, y);
-      doc.text(`${balance.toFixed(2)}`, 450, y);
-    }
-  }
-
+  // ================= CENTER TEXT BLOCK =================
   y += 30;
+  doc
+    .font("Helvetica-Oblique")
+    .fontSize(9)
+    .text(`Amount in words: ${convertToWords(order.grandTotal)} Rupees Only`, 0, y, {
+      align: "center",
+    });
 
-  doc.font("Helvetica-Oblique").fontSize(9)
-    .text(`Amount in words: ${convertToWords(order.grandTotal)} Rupees Only`, 50, y);
+  y += 15;
+  doc
+    .font("Helvetica")
+    .fontSize(9)
+    .text("Note: Plants once sold cannot be replaced or exchanged.", 0, y, {
+      align: "center",
+    });
 
-  y += 30;
+  y += 15;
+  doc
+    .font("Helvetica-Bold")
+    .text("Thank you for your business!", 0, y, { align: "center" });
 
-  doc.font("Helvetica").fontSize(8)
-    .text("Note: Plants once sold cannot be replaced or exchanged.", { align: "center" });
-
-  y += 20;
-
-  doc.font("Helvetica-Bold").fontSize(9)
-    .text("Thank you for your business!", { align: "center" });
-
-  y += 30;
-
-  doc.font("Helvetica").fontSize(8)
-    .text("For VARASHREE FARM & NURSERY", 400, y);
-
-  y += 30;
-  doc.text("Authorized Signatory", 400, y);
+  // ================= SIGNATURE =================
+  y += 40;
+  doc.font("Helvetica").fontSize(9);
+  doc.text("For VARASHREE FARM & NURSERY", 350, y);
+  y += 25;
+  doc.text("Authorized Signatory", 350, y);
 
   doc.end();
 }
+
+
 
 // Convert number to words (Indian Format)
 function convertToWords(amount) {

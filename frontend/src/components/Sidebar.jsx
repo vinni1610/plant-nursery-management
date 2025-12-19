@@ -98,6 +98,33 @@ export default function Sidebar({ toggleSidebar, open }) {
                 <i className="bi bi-basket me-2"></i> Create Order
               </NavLink>
             </li>
+            <li>
+  <NavLink
+    to="/purchases"
+    onClick={closeSidebar}
+    className={({ isActive }) =>
+      `nav-link text-white ${
+        isActive ? "active bg-light text-success fw-bold" : "text-white"
+      }`
+    }
+  >
+    <i className="bi bi-bag-check me-2"></i> Purchases
+  </NavLink>
+</li>
+
+<li>
+  <NavLink
+    to="/estimations/create"
+    onClick={closeSidebar}
+    className={({ isActive }) =>
+      `nav-link text-white ${
+        isActive ? "active bg-light text-success fw-bold" : "text-white"
+      }`
+    }
+  >
+    <i className="bi bi-file-earmark-text me-2"></i> Create Estimation
+  </NavLink>
+</li>
 
             <li>
               <NavLink
@@ -113,7 +140,6 @@ export default function Sidebar({ toggleSidebar, open }) {
               </NavLink>
             </li>
           </ul>
-
           <div className="text-center small opacity-75 mt-auto">
             © 2025 Varashree Nursery
           </div>

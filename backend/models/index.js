@@ -1,13 +1,29 @@
-// backend/models/index.js
 const sequelize = require("../config/db");
 const Plant = require("./Plant");
 const { Order, OrderItem } = require("./Order");
+const { Estimation, EstimationItem } = require("./Estimation");
 
-// ✅ Define associations (only once)
-Order.hasMany(OrderItem, { as: "orderItems", foreignKey: "orderId", onDelete: "CASCADE" });
+// Orders
+Order.hasMany(OrderItem, { as: "orderItems", foreignKey: "orderId" });
 OrderItem.belongsTo(Order, { foreignKey: "orderId" });
 
-Plant.hasMany(OrderItem, { foreignKey: "plantId", onDelete: "SET NULL" });
-OrderItem.belongsTo(Plant, { foreignKey: "plantId" });
+// OrderItems <-> Plant (THE MISSING LINK)
+OrderItem.belongsTo(Plant, { as: "plant", foreignKey: "plantId" });
+Plant.hasMany(OrderItem, { foreignKey: "plantId" });
 
-module.exports = { sequelize, Plant, Order, OrderItem };
+// Estimations
+Estimation.hasMany(EstimationItem, { as: "estimationItems", foreignKey: "estimationId" });
+EstimationItem.belongsTo(Estimation, { foreignKey: "estimationId" });
+
+// EstimationItems <-> Plant
+EstimationItem.belongsTo(Plant, { as: "plant", foreignKey: "plantId" });
+Plant.hasMany(EstimationItem, { foreignKey: "plantId" });
+
+module.exports = {
+  sequelize,
+  Plant,
+  Order,
+  OrderItem,
+  Estimation,
+  EstimationItem,
+};

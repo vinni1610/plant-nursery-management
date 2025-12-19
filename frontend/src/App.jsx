@@ -9,6 +9,8 @@ import CreateOrder from "./components/CreateOrder";
 import Reports from "./components/Reports";
 import Login from "./components/Login";
 import EditPlant from "./components/EditPlant";
+import CreateEstimation from "./components/CreateEstimation";
+import PurchaseDashboard from "./components/PurchaseDashboard";
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -73,6 +75,9 @@ export default function App() {
                 <Route path="/orders/create" element={<CreateOrder />} />
                 <Route path="/reports" element={<Reports />} />
                 <Route path="/plants/edit/:id" element={<EditPlant />} />
+                <Route path="/estimations/create" element={<CreateEstimation />} />
+                <Route path="/purchases" element={<PurchaseDashboard />} />
+
                 <Route path="*" element={<Navigate to="/" />} />
               </Routes>
 
