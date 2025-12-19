@@ -61,8 +61,8 @@ function generateInvoiceStream(order, items, res) {
     doc.text(i + 1, 50, y);
     doc.text(item.plantName, 100, y, { width: 180 });
     doc.text(item.quantity.toString(), 300, y);
-    doc.text(`₹${parseFloat(item.rate).toFixed(2)}`, 370, y);
-    doc.text(`₹${parseFloat(item.total).toFixed(2)}`, 450, y);
+    doc.text(` ${parseFloat(item.rate).toFixed(2)}`, 370, y);
+    doc.text(`${parseFloat(item.total).toFixed(2)}`, 450, y);
     y += 20;
   });
 
@@ -71,37 +71,37 @@ function generateInvoiceStream(order, items, res) {
   y += 15;
   doc.font("Helvetica").fontSize(10);
   doc.text(`Subtotal:`, 370, y);
-  doc.text(`₹${parseFloat(order.subTotal).toFixed(2)}`, 450, y);
+  doc.text(` ${parseFloat(order.subTotal).toFixed(2)}`, 450, y);
 
   if (order.discount && order.discount > 0) {
     y += 15;
     doc.text(`Discount:`, 370, y);
-    doc.text(`-₹${parseFloat(order.discount).toFixed(2)}`, 450, y);
+    doc.text(` ${parseFloat(order.discount).toFixed(2)}`, 450, y);
   }
 
   if (order.tax && order.tax > 0) {
     y += 15;
     doc.text(`Tax:`, 370, y);
-    doc.text(`₹${parseFloat(order.tax).toFixed(2)}`, 450, y);
+      doc.text(` ${parseFloat(order.tax).toFixed(2)}`, 450, y);
   }
 
   y += 15;
   doc.font("Helvetica-Bold").fontSize(11);
   doc.text(`Grand Total:`, 370, y);
-  doc.text(`₹${parseFloat(order.grandTotal).toFixed(2)}`, 450, y);
+  doc.text(`${parseFloat(order.grandTotal).toFixed(2)}`, 450, y);
 
   if (order.paidAmount) {
     y += 15;
     doc.font("Helvetica").fontSize(10);
     doc.text(`Paid Amount:`, 370, y);
-    doc.text(`₹${parseFloat(order.paidAmount).toFixed(2)}`, 450, y);
+    doc.text(`${parseFloat(order.grandTotal).toFixed(2)}`, 450, y);
 
     const balance = order.grandTotal - order.paidAmount;
     if (balance > 0) {
       y += 15;
       doc.font("Helvetica-Bold");
       doc.text(`Balance:`, 370, y);
-      doc.text(`₹${balance.toFixed(2)}`, 450, y);
+      doc.text(`${balance.toFixed(2)}`, 450, y);
     }
   }
 

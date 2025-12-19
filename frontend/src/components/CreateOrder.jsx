@@ -1,28 +1,38 @@
-import React, { useEffect, useState } from 'react';
-import API from '../api';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from "react";
+import API from "../api";
+import { useNavigate } from "react-router-dom";
 
 export default function CreateOrder() {
   const [plants, setPlants] = useState([]);
   const [items, setItems] = useState([]);
   const [form, setForm] = useState({
-    customerName: '',
-    customerContact: '',
-    customerAddress: '',
+    customerName: "",
+    customerContact: "",
+    customerAddress: "",
   });
 
   const navigate = useNavigate();
 
   // Fetch plant list
   useEffect(() => {
-    API.get('/plants')
+    API.get("/plants")
       .then((res) => setPlants(res.data))
       .catch(console.error);
   }, []);
 
   // Add row
   const addItem = () => {
-    setItems([...items, { plantId: '', plantName: '', rate: '', quantity: 1, total: 0 }]);
+    setItems([
+      ...items,
+      {
+        plantId: "",
+        plantName: "",
+        rate: 0,
+        quantity: 1,
+        total: 0,
+        search: "",
+      },
+    ]);
   };
 
   // Remove row
@@ -30,21 +40,18 @@ export default function CreateOrder() {
     setItems(items.filter((_, i) => i !== idx));
   };
 
-  // When plant selected
-  const onPlantChange = (idx, plantId) => {
-    const plant = plants.find((p) => p.id === parseInt(plantId));
+  // Select plant
+  const onPlantSelect = (idx, plant) => {
     const next = [...items];
-
-    if (!plant) {
-      next[idx] = { plantId: '', plantName: '', rate: '', quantity: 1, total: 0 };
-    } else {
-      next[idx].plantId = plant.id;
-      next[idx].plantName = plant.plantName;
-      next[idx].rate = plant.price;
-      next[idx].quantity = 1;
-      next[idx].total = plant.price;
-    }
-
+    next[idx] = {
+      ...next[idx],
+      plantId: plant.id,
+      plantName: plant.plantName,
+      rate: plant.price,
+      quantity: 1,
+      total: plant.price,
+      search: plant.plantName,
+    };
     setItems(next);
   };
 
@@ -60,25 +67,22 @@ export default function CreateOrder() {
   const subTotal = items.reduce((sum, i) => sum + i.total, 0);
   const grandTotal = subTotal;
 
-  // ---------------------------------------------
-  // ✅ Function to DOWNLOAD the Invoice PDF
-  // ---------------------------------------------
+  // Download invoice
   const downloadInvoice = async (orderId) => {
     try {
-      const response = await API.get(`/orders/${orderId}/invoice`, {
+      const res = await API.get(`/orders/${orderId}/invoice`, {
         responseType: "blob",
       });
 
-      const blob = new Blob([response.data], { type: "application/pdf" });
-      const link = document.createElement("a");
-      link.href = window.URL.createObjectURL(blob);
-      link.download = `invoice_${orderId}.pdf`;
-      link.click();
-      link.remove();
-
-    } catch (err) {
-      console.error("❌ Invoice download failed:", err);
-      alert("Failed to download invoice");
+      const blob = new Blob([res.data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `invoice_${orderId}.pdf`;
+      a.click();
+      a.remove();
+    } catch {
+      alert("Invoice download failed");
     }
   };
 
@@ -86,8 +90,9 @@ export default function CreateOrder() {
   const submit = async (e) => {
     e.preventDefault();
 
-    if (items.length === 0) return alert('Add at least one plant');
-    if (items.some((i) => !i.plantId)) return alert('Please select all plants');
+    if (items.length === 0) return alert("Add at least one plant");
+    if (items.some((i) => !i.plantId))
+      return alert("Select plant for all rows");
 
     const payload = {
       orderNo: `ORD-${Date.now()}`,
@@ -98,129 +103,157 @@ export default function CreateOrder() {
       subTotal,
       grandTotal,
       paidAmount: grandTotal,
-      status: 'Paid',
+      status: "Paid",
     };
 
     try {
-      const res = await API.post('/orders', payload);
-
-      const orderId = res?.data?.order?.id;
-      const invoiceUrl = res?.data?.invoiceDownloadUrl;
-
-      if (orderId && invoiceUrl) {
-        // Download the invoice via blob
-        await downloadInvoice(orderId);
-      }
-
-      alert("Order created successfully!");
+      const res = await API.post("/orders", payload);
+      await downloadInvoice(res.data.order.id);
+      alert("Order created successfully");
       navigate("/");
-
     } catch (err) {
-      console.error(err);
-      alert("❌ Error: " + (err?.response?.data?.error || err.message));
+      alert(err?.response?.data?.error || "Order failed");
     }
   };
 
   return (
     <div className="container mt-4">
-      <h2 className="mb-4 text-success">Create Order</h2>
+      <h2 className="text-success mb-4">Create Order</h2>
 
       <form onSubmit={submit} className="card p-4 shadow-sm">
         {/* Customer Info */}
         <div className="row mb-3">
           <div className="col-md-4">
-            <label className="form-label">Customer Name *</label>
-            <input type="text" className="form-control"
+            <label>Customer Name *</label>
+            <input
+              className="form-control"
               value={form.customerName}
-              onChange={(e) => setForm({ ...form, customerName: e.target.value })}
-              required />
+              onChange={(e) =>
+                setForm({ ...form, customerName: e.target.value })
+              }
+              required
+            />
           </div>
 
           <div className="col-md-4">
-            <label className="form-label">Customer Contact</label>
-            <input type="text" className="form-control"
+            <label>Contact</label>
+            <input
+              className="form-control"
               value={form.customerContact}
-              onChange={(e) => setForm({ ...form, customerContact: e.target.value })}
-              />
+              onChange={(e) =>
+                setForm({ ...form, customerContact: e.target.value })
+              }
+            />
           </div>
 
           <div className="col-md-4">
-            <label className="form-label">Customer Address *</label>
-            <input type="text" className="form-control"
+            <label>Address *</label>
+            <input
+              className="form-control"
               value={form.customerAddress}
-              onChange={(e) => setForm({ ...form, customerAddress: e.target.value })}
-              required />
+              onChange={(e) =>
+                setForm({ ...form, customerAddress: e.target.value })
+              }
+              required
+            />
           </div>
         </div>
 
-        {/* Items section */}
+        {/* Items */}
         <div className="mb-3">
-          <div className="d-flex justify-content-between align-items-center mb-3">
+          <div className="d-flex justify-content-between mb-2">
             <h5>Order Items</h5>
             <button type="button" className="btn btn-primary" onClick={addItem}>
               + Add Plant
             </button>
           </div>
 
-          {items.length > 0 && (
-            <div className="row g-2 fw-bold text-muted mb-2">
-              <div className="col-md-4">Plant</div>
-              <div className="col-md-2">Rate</div>
-              <div className="col-md-2">Qty</div>
-              <div className="col-md-2">Total</div>
-              <div className="col-md-2">Action</div>
-            </div>
-          )}
+          {items.map((it, idx) => {
+            const filteredPlants = plants.filter((p) =>
+              p.plantName.toLowerCase().includes(it.search.toLowerCase())
+            );
 
-          {items.map((it, idx) => (
-            <div key={idx} className="row g-2 mb-2 align-items-center">
-              <div className="col-md-4">
-                <select
-                  className="form-select"
-                  value={it.plantId}
-                  onChange={(e) => onPlantChange(idx, e.target.value)}
-                  required>
-                  <option value="">-- Select --</option>
-                  {plants.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.plantName} (Stock: {p.stock})
-                    </option>
-                  ))}
-                </select>
-              </div>
+            return (
+              <div key={idx} className="row g-2 mb-2 align-items-center">
+                <div className="col-md-4 position-relative">
+                  <input
+                    className="form-control"
+                    placeholder="Search plant..."
+                    value={it.search}
+                    onChange={(e) => {
+                      const next = [...items];
+                      next[idx].search = e.target.value;
+                      setItems(next);
+                    }}
+                  />
 
-              <div className="col-md-2">
-                <input className="form-control" readOnly value={it.rate || ""} />
-              </div>
+                  {it.search && !it.plantId && (
+                    <div className="list-group position-absolute w-100 shadow z-3">
+                      {filteredPlants.slice(0, 6).map((p) => (
+                        <button
+                          type="button"
+                          key={p.id}
+                          className="list-group-item list-group-item-action"
+                          onClick={() => onPlantSelect(idx, p)}
+                        >
+                          {p.plantName} (Stock: {p.stock})
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
-              <div className="col-md-2">
-                <input type="number" className="form-control"
-                  min="1"
-                  value={it.quantity}
-                  onChange={(e) => onQtyChange(idx, e.target.value)} />
-              </div>
+                <div className="col-md-2">
+                  <input
+                    className="form-control"
+                    readOnly
+                    value={`₹ ${it.rate.toFixed(2)}`}
+                  />
+                </div>
 
-              <div className="col-md-2">
-                <input className="form-control" readOnly value={it.total.toFixed(2)} />
-              </div>
+                <div className="col-md-2">
+                  <input
+                    type="number"
+                    className="form-control"
+                    min="1"
+                    value={it.quantity}
+                    onChange={(e) => onQtyChange(idx, e.target.value)}
+                  />
+                </div>
 
-              <div className="col-md-2">
-                <button type="button" className="btn btn-outline-danger btn-sm"
-                  onClick={() => removeItem(idx)}>✕ Remove</button>
+                <div className="col-md-2">
+                  <input
+                    className="form-control"
+                    readOnly
+                    value={`₹ ${it.total.toFixed(2)}`}
+                  />
+                </div>
+
+                <div className="col-md-2">
+                  <button
+                    type="button"
+                    className="btn btn-outline-danger btn-sm"
+                    onClick={() => removeItem(idx)}
+                  >
+                    ✕ Remove
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Totals */}
         <div className="text-end border-top pt-3">
-          <p><strong>Subtotal:</strong> ₹ {subTotal.toFixed(2)}</p>
-          <p className="fs-5 fw-bold text-success">
+          <p>
+            <strong>Subtotal:</strong> ₹ {subTotal.toFixed(2)}
+          </p>
+          <p className="fw-bold text-success fs-5">
             Grand Total: ₹ {grandTotal.toFixed(2)}
           </p>
         </div>
 
-        <button className="btn btn-success mt-3" disabled={items.length === 0}>
+        <button className="btn btn-success mt-3" disabled={!items.length}>
           Place Order
         </button>
       </form>
