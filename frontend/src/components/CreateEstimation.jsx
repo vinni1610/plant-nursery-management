@@ -4,55 +4,58 @@ import API from "../api";
 export default function CreateEstimation() {
   const [plants, setPlants] = useState([]);
   const [items, setItems] = useState([]);
+  const [estimations, setEstimations] = useState([]);
+
   const [form, setForm] = useState({
     customerName: "",
     customerContact: "",
     customerAddress: "",
   });
 
-  // 🔹 Load plants
+  /* ================= LOAD DATA ================= */
   useEffect(() => {
-    API.get("/plants")
-      .then((res) => setPlants(res.data))
-      .catch(console.error);
+    API.get("/plants").then(res => setPlants(res.data));
+    loadEstimations();
   }, []);
 
-  // ➕ Add row
+  const loadEstimations = async () => {
+    const res = await API.get("/estimations");
+    setEstimations(res.data);
+  };
+
+  /* ================= ITEMS ================= */
   const addItem = () => {
     setItems([
       ...items,
       {
-        plantId: "",
         plantName: "",
         rate: 0,
         quantity: 1,
         total: 0,
         search: "",
+        selected: false,
       },
     ]);
   };
 
-  // ❌ Remove row
   const removeItem = (idx) => {
     setItems(items.filter((_, i) => i !== idx));
   };
 
-  // 🌱 Select plant from search
-  const onPlantSelect = (idx, plant) => {
+  const selectPlant = (idx, plant) => {
     const next = [...items];
     next[idx] = {
       ...next[idx],
-      plantId: plant.id,
       plantName: plant.plantName,
       rate: plant.price,
       quantity: 1,
       total: plant.price,
       search: plant.plantName,
+      selected: true, // ✅ closes dropdown
     };
     setItems(next);
   };
 
-  // 🔢 Quantity change
   const onQtyChange = (idx, qty) => {
     const next = [...items];
     next[idx].quantity = Number(qty);
@@ -60,91 +63,63 @@ export default function CreateEstimation() {
     setItems(next);
   };
 
-  // 💰 Totals
-  const subTotal = items.reduce((sum, i) => sum + i.total, 0);
-  const grandTotal = subTotal;
+  const subTotal = items.reduce((s, i) => s + i.total, 0);
 
-  // 📄 Submit estimation & download PDF
+  /* ================= SUBMIT ================= */
   const submit = async (e) => {
     e.preventDefault();
+    if (!items.length) return alert("Add at least one plant");
 
-    if (!items.length) return alert("Add at least one item");
+    const res = await API.post("/estimations", {
+      estimateNo: `EST-${Date.now()}`,
+      ...form,
+      items,
+      grandTotal: subTotal,
+    });
 
-    try {
-      const res = await API.post("/estimations", {
-        estimateNo: `EST-${Date.now()}`,
-        customerName: form.customerName,
-        customerContact: form.customerContact,
-        customerAddress: form.customerAddress,
-        items,
-        subTotal,
-        grandTotal,
-      });
+    const id = res.data.estimation.id;
+    const pdf = await API.get(`/estimations/${id}/pdf`, {
+      responseType: "blob",
+    });
 
-      const estimationId = res.data.estimation.id;
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(new Blob([pdf.data]));
+    link.download = `estimation_${id}.pdf`;
+    link.click();
 
-      // ⬇️ Download PDF
-      const pdfRes = await API.get(`/estimations/${estimationId}/pdf`, {
-        responseType: "blob",
-      });
-
-      const blob = new Blob([pdfRes.data], { type: "application/pdf" });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = `estimation_${estimationId}.pdf`;
-      link.click();
-
-    } catch (err) {
-      console.error(err);
-      alert("❌ Estimation failed");
-    }
+    setForm({ customerName: "", customerContact: "", customerAddress: "" });
+    setItems([]);
+    loadEstimations();
   };
 
   return (
     <div className="container mt-4">
-      <h2 className="text-success mb-4">Create Estimation</h2>
 
-      <form onSubmit={submit} className="card p-4 shadow-sm">
+      {/* ================= CREATE ================= */}
+      <h3 className="text-success mb-3">Create Estimation</h3>
 
-        {/* 👤 Customer Info */}
+      <form onSubmit={submit} className="card p-4 shadow-sm mb-5">
         <div className="row mb-3">
           <div className="col-md-4">
-            <label>Customer Name *</label>
-            <input
-              className="form-control"
-              required
+            <input className="form-control" placeholder="Customer Name"
               value={form.customerName}
-              onChange={(e) =>
-                setForm({ ...form, customerName: e.target.value })
-              }
-            />
+              onChange={e => setForm({ ...form, customerName: e.target.value })}
+              required />
           </div>
-
           <div className="col-md-4">
-            <label>Mobile No</label>
-            <input
-              className="form-control"
+            <input className="form-control" placeholder="Mobile"
               value={form.customerContact}
-              onChange={(e) =>
-                setForm({ ...form, customerContact: e.target.value })
-              }
-            />
+              onChange={e => setForm({ ...form, customerContact: e.target.value })} />
           </div>
-
           <div className="col-md-4">
-            <label>Address *</label>
-            <input
-              className="form-control"
-              required
+            <input className="form-control" placeholder="Address"
               value={form.customerAddress}
-              onChange={(e) =>
-                setForm({ ...form, customerAddress: e.target.value })
-              }
-            />
+              onChange={e => setForm({ ...form, customerAddress: e.target.value })}
+              required />
           </div>
         </div>
 
-        {/* 🌿 Estimation Items */}
+        {/* ================= ITEMS ================= */}
         <div className="mb-3">
           <div className="d-flex justify-content-between mb-2">
             <h5>Estimation Items</h5>
@@ -154,13 +129,13 @@ export default function CreateEstimation() {
           </div>
 
           {items.map((it, idx) => {
-            const filteredPlants = plants.filter((p) =>
+            const filteredPlants = plants.filter(p =>
               p.plantName.toLowerCase().includes(it.search.toLowerCase())
             );
 
             return (
               <div key={idx} className="row g-2 mb-2 align-items-center">
-                {/* 🔍 Search */}
+                {/* SEARCH */}
                 <div className="col-md-4 position-relative">
                   <input
                     className="form-control"
@@ -169,19 +144,20 @@ export default function CreateEstimation() {
                     onChange={(e) => {
                       const next = [...items];
                       next[idx].search = e.target.value;
-                      next[idx].plantId = "";
+                      next[idx].selected = false;
                       setItems(next);
                     }}
                   />
 
-                  {it.search && !it.plantId && (
+                  {/* ✅ DROPDOWN */}
+                  {it.search && !it.selected && (
                     <div className="list-group position-absolute w-100 shadow z-3">
                       {filteredPlants.slice(0, 6).map((p) => (
                         <button
-                          key={p.id}
                           type="button"
+                          key={p.id}
                           className="list-group-item list-group-item-action"
-                          onClick={() => onPlantSelect(idx, p)}
+                          onClick={() => selectPlant(idx, p)}
                         >
                           {p.plantName}
                         </button>
@@ -190,42 +166,29 @@ export default function CreateEstimation() {
                   )}
                 </div>
 
-                {/* 💲 Rate */}
+                {/* RATE */}
                 <div className="col-md-2">
-                  <input
-                    className="form-control"
-                    readOnly
-                    value={it.rate ? `₹ ${it.rate.toFixed(2)}` : ""}
-                  />
+                  <input className="form-control" readOnly value={`₹ ${it.rate}`} />
                 </div>
 
-                {/* 🔢 Qty */}
+                {/* QTY */}
                 <div className="col-md-2">
-                  <input
-                    type="number"
-                    className="form-control"
+                  <input type="number" className="form-control"
                     min="1"
                     value={it.quantity}
-                    onChange={(e) => onQtyChange(idx, e.target.value)}
-                  />
+                    onChange={(e) => onQtyChange(idx, e.target.value)} />
                 </div>
 
-                {/* 💰 Total */}
+                {/* TOTAL */}
                 <div className="col-md-2">
-                  <input
-                    className="form-control"
-                    readOnly
-                    value={it.total ? `₹ ${it.total.toFixed(2)}` : ""}
-                  />
+                  <input className="form-control" readOnly value={`₹ ${it.total}`} />
                 </div>
 
-                {/* ❌ Remove */}
+                {/* REMOVE */}
                 <div className="col-md-2">
-                  <button
-                    type="button"
+                  <button type="button"
                     className="btn btn-outline-danger btn-sm"
-                    onClick={() => removeItem(idx)}
-                  >
+                    onClick={() => removeItem(idx)}>
                     ✕ Remove
                   </button>
                 </div>
@@ -234,18 +197,57 @@ export default function CreateEstimation() {
           })}
         </div>
 
-        {/* 💰 Totals */}
         <div className="text-end border-top pt-3">
-          <p><strong>Total Items:</strong> {items.length}</p>
-          <p className="fw-bold text-success fs-5">
-            Estimation Cost: ₹ {grandTotal.toFixed(2)}
-          </p>
+          <strong>Estimated Cost:  {subTotal.toFixed(2)}</strong>
         </div>
 
         <button className="btn btn-success mt-3" disabled={!items.length}>
           Create Estimation
         </button>
       </form>
+
+      {/* ================= DASHBOARD ================= */}
+      <h4 className="text-success mb-3">Estimations</h4>
+
+      <div className="card shadow-sm table-responsive">
+        <table className="table table-bordered">
+          <thead className="table-success">
+            <tr>
+              <th>Sl.No</th>
+              <th>Customer</th>
+              <th>Mobile</th>
+              <th>Address</th>
+              <th>Items</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {estimations.map((e, i) => (
+              <tr key={e.id}>
+                <td>{i + 1}</td>
+                <td>{e.customerName}</td>
+                <td>{e.customerContact || "-"}</td>
+                <td>{e.customerAddress}</td>
+                <td>
+                  {e.items.map((it, idx) => (
+                    <div key={idx}>{it.plantName} × {it.quantity}</div>
+                  ))}
+                </td>
+                <td>{new Date(e.createdAt).toLocaleDateString("en-IN")}</td>
+              </tr>
+            ))}
+
+            {!estimations.length && (
+              <tr>
+                <td colSpan="6" className="text-center text-muted">
+                  No estimations found
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
     </div>
   );
 }

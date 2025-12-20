@@ -1,3 +1,4 @@
+// backend/models/Estimation.js
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/db");
 
@@ -28,13 +29,25 @@ const Estimation = sequelize.define("Estimation", {
 });
 
 const EstimationItem = sequelize.define("EstimationItem", {
-  plantName: DataTypes.STRING,
-  rate: DataTypes.FLOAT,
-  quantity: DataTypes.INTEGER,
-  total: DataTypes.FLOAT,
+  plantName: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  rate: {
+    type: DataTypes.FLOAT,
+    allowNull: false,
+  },
+  quantity: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
+  total: {
+    type: DataTypes.FLOAT,
+    allowNull: false,
+  },
 });
 
-// Associations
+// ✅ Associations
 Estimation.hasMany(EstimationItem, {
   as: "items",
   foreignKey: "estimationId",
