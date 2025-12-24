@@ -46,7 +46,7 @@ function generateInvoiceStream(order, items, res) {
     .text(
       "Approved by Department of Horticulture, Government of Karnataka & Government of India\n" +
         "Spice Board & NHB Approved 3 Star Nursery\n" +
-        "Sakrebbyle, Gajanur Post, Shimoga Tq. & Dist, Karnataka\n" +
+        "Sakrebyle, Gajanur Post, Shimoga Tq. & Dist, Karnataka\n" +
         "Mob: 7892326717, 9449742477, 7892023515 | Email: varashreenursery10@gmail.com",
       110,
       55
@@ -125,19 +125,21 @@ function generateInvoiceStream(order, items, res) {
 
   // ================= TOTALS =================
   y += 15;
-  doc.fontSize(10).font("Helvetica");
-  doc.text("Subtotal :", 340, y);
-  doc.text(order.subTotal.toFixed(2), 440, y);
+doc.fontSize(10).font("Helvetica");
+doc.text("Subtotal :", 340, y);
+doc.text(order.subTotal.toFixed(2), 440, y);
 
+if (order.discount && order.discount > 0) {
   y += 15;
-  doc.font("Helvetica-Bold");
-  doc.text("Grand Total :", 340, y);
-  doc.text(order.grandTotal.toFixed(2), 440, y);
+  doc.text("Discount :", 340, y);
+  doc.text(order.discount.toFixed(2), 440, y);
+}
 
-  y += 15;
-  doc.font("Helvetica");
-  doc.text("Paid Amount :", 340, y);
-  doc.text(order.paidAmount.toFixed(2), 440, y);
+y += 15;
+doc.font("Helvetica-Bold");
+doc.text("Grand Total :", 340, y);
+doc.text(order.grandTotal.toFixed(2), 440, y);
+
 
   // ================= CENTER TEXT BLOCK =================
   y += 30;

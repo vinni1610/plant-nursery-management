@@ -5,6 +5,8 @@ import { useNavigate } from "react-router-dom";
 export default function CreateOrder() {
   const [plants, setPlants] = useState([]);
   const [items, setItems] = useState([]);
+  const [discount, setDiscount] = useState(0);
+
   const [form, setForm] = useState({
     customerName: "",
     customerContact: "",
@@ -13,14 +15,18 @@ export default function CreateOrder() {
 
   const navigate = useNavigate();
 
-  // Fetch plant list
+  // =============================
+  // FETCH PLANTS
+  // =============================
   useEffect(() => {
     API.get("/plants")
       .then((res) => setPlants(res.data))
       .catch(console.error);
   }, []);
 
-  // Add row
+  // =============================
+  // ADD / REMOVE ITEM
+  // =============================
   const addItem = () => {
     setItems([
       ...items,
@@ -31,16 +37,18 @@ export default function CreateOrder() {
         quantity: 1,
         total: 0,
         search: "",
+        showDropdown: false,
       },
     ]);
   };
 
-  // Remove row
   const removeItem = (idx) => {
     setItems(items.filter((_, i) => i !== idx));
   };
 
-  // Select plant
+  // =============================
+  // SELECT PLANT
+  // =============================
   const onPlantSelect = (idx, plant) => {
     const next = [...items];
     next[idx] = {
@@ -51,11 +59,14 @@ export default function CreateOrder() {
       quantity: 1,
       total: plant.price,
       search: plant.plantName,
+      showDropdown: false, // ✅ CLOSE DROPDOWN
     };
     setItems(next);
   };
 
-  // Update quantity
+  // =============================
+  // UPDATE QUANTITY
+  // =============================
   const onQtyChange = (idx, qty) => {
     const next = [...items];
     next[idx].quantity = Number(qty);
@@ -63,36 +74,35 @@ export default function CreateOrder() {
     setItems(next);
   };
 
-  // Totals
+  // =============================
+  // CALCULATIONS
+  // =============================
   const subTotal = items.reduce((sum, i) => sum + i.total, 0);
-  const grandTotal = subTotal;
+  const grandTotal = subTotal - discount;
 
-  // Download invoice
+
+  // =============================
+  // DOWNLOAD INVOICE
+  // =============================
   const downloadInvoice = async (orderId) => {
-    try {
-      const res = await API.get(`/orders/${orderId}/invoice`, {
-        responseType: "blob",
-      });
-
-      const blob = new Blob([res.data], { type: "application/pdf" });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `invoice_${orderId}.pdf`;
-      a.click();
-      a.remove();
-    } catch {
-      alert("Invoice download failed");
-    }
+    const res = await API.get(`/orders/${orderId}/invoice`, {
+      responseType: "blob",
+    });
+    const blob = new Blob([res.data], { type: "application/pdf" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `invoice_${orderId}.pdf`;
+    link.click();
   };
 
-  // Submit order
+  // =============================
+  // SUBMIT ORDER
+  // =============================
   const submit = async (e) => {
     e.preventDefault();
 
-    if (items.length === 0) return alert("Add at least one plant");
-    if (items.some((i) => !i.plantId))
-      return alert("Select plant for all rows");
+    if (!items.length) return alert("Add at least one plant");
+    if (items.some((i) => !i.plantId)) return alert("Select plant for all rows");
 
     const payload = {
       orderNo: `ORD-${Date.now()}`,
@@ -101,6 +111,7 @@ export default function CreateOrder() {
       customerAddress: form.customerAddress,
       items,
       subTotal,
+      discount,
       grandTotal,
       paidAmount: grandTotal,
       status: "Paid",
@@ -121,17 +132,18 @@ export default function CreateOrder() {
       <h2 className="text-success mb-4">Create Order</h2>
 
       <form onSubmit={submit} className="card p-4 shadow-sm">
-        {/* Customer Info */}
+
+        {/* CUSTOMER INFO */}
         <div className="row mb-3">
           <div className="col-md-4">
             <label>Customer Name *</label>
             <input
               className="form-control"
+              required
               value={form.customerName}
               onChange={(e) =>
                 setForm({ ...form, customerName: e.target.value })
               }
-              required
             />
           </div>
 
@@ -150,16 +162,16 @@ export default function CreateOrder() {
             <label>Address *</label>
             <input
               className="form-control"
+              required
               value={form.customerAddress}
               onChange={(e) =>
                 setForm({ ...form, customerAddress: e.target.value })
               }
-              required
             />
           </div>
         </div>
 
-        {/* Items */}
+        {/* ITEMS */}
         <div className="mb-3">
           <div className="d-flex justify-content-between mb-2">
             <h5>Order Items</h5>
@@ -175,6 +187,7 @@ export default function CreateOrder() {
 
             return (
               <div key={idx} className="row g-2 mb-2 align-items-center">
+                {/* SEARCH */}
                 <div className="col-md-4 position-relative">
                   <input
                     className="form-control"
@@ -183,11 +196,12 @@ export default function CreateOrder() {
                     onChange={(e) => {
                       const next = [...items];
                       next[idx].search = e.target.value;
+                      next[idx].showDropdown = true;
                       setItems(next);
                     }}
                   />
 
-                  {it.search && !it.plantId && (
+                  {it.showDropdown && filteredPlants.length > 0 && (
                     <div className="list-group position-absolute w-100 shadow z-3">
                       {filteredPlants.slice(0, 6).map((p) => (
                         <button
@@ -203,14 +217,16 @@ export default function CreateOrder() {
                   )}
                 </div>
 
+                {/* RATE */}
                 <div className="col-md-2">
                   <input
                     className="form-control"
                     readOnly
-                    value={`₹ ${it.rate.toFixed(2)}`}
+                    value={it.rate ? `₹ ${it.rate.toFixed(2)}` : ""}
                   />
                 </div>
 
+                {/* QTY */}
                 <div className="col-md-2">
                   <input
                     type="number"
@@ -221,14 +237,16 @@ export default function CreateOrder() {
                   />
                 </div>
 
+                {/* TOTAL */}
                 <div className="col-md-2">
                   <input
                     className="form-control"
                     readOnly
-                    value={`₹ ${it.total.toFixed(2)}`}
+                    value={it.total ? `₹ ${it.total.toFixed(2)}` : ""}
                   />
                 </div>
 
+                {/* REMOVE */}
                 <div className="col-md-2">
                   <button
                     type="button"
@@ -243,14 +261,28 @@ export default function CreateOrder() {
           })}
         </div>
 
-        {/* Totals */}
-        <div className="text-end border-top pt-3">
-          <p>
-            <strong>Subtotal:</strong> ₹ {subTotal.toFixed(2)}
-          </p>
-          <p className="fw-bold text-success fs-5">
-            Grand Total: ₹ {grandTotal.toFixed(2)}
-          </p>
+        {/* TOTALS */}
+        <div className="border-top pt-3">
+          <div className="row">
+            <div className="col-md-4 offset-md-8">
+              <p><strong>Subtotal:</strong> ₹ {subTotal.toFixed(2)}</p>
+
+              <div className="mb-2">
+                <label>Discount</label>
+                <input
+                  type="number"
+                  className="form-control"
+                  min="0"
+                  value={discount}
+                  onChange={(e) => setDiscount(e.target.value)}
+                />
+              </div>
+
+              <p className="fw-bold text-success fs-5">
+                Grand Total: ₹ {grandTotal.toFixed(2)}
+              </p>
+            </div>
+          </div>
         </div>
 
         <button className="btn btn-success mt-3" disabled={!items.length}>

@@ -59,7 +59,7 @@ function generateEstimationPDF(estimation, items, res) {
     .text(
       "Approved by Department of Horticulture, Government of Karnataka & Government of India\n" +
       "Spice Board & NHB Approved 3 Star Nursery\n" +
-      "Sakrebbyle, Gajanur Post, Shimoga Tq. & Dist, Karnataka\n" +
+      "Sakrebyle, Gajanur Post, Shimoga Tq. & Dist, Karnataka\n" +
       "Mob: 7892326717, 9449742477 | Email: varashreenursery10@gmail.com",
       110, 55, { align: "center" }
     );
@@ -83,30 +83,60 @@ function generateEstimationPDF(estimation, items, res) {
   doc.text(`Address : ${estimation.customerAddress || "-"}`, 40, y);
 
   // Table
-  y += 25;
-  const col = { no: 40, item: 80, qty: 300, rate: 360, total: 440 };
-  const rowHeight = 22;
+  // ================= TABLE =================
+y += 25;
 
-  doc.rect(40, y, pageWidth - 80, rowHeight).stroke();
-  doc.font("Helvetica-Bold").fontSize(10);
-  doc.text("No", col.no, y + 6);
-  doc.text("Particulars", col.item, y + 6);
-  doc.text("Qty", col.qty, y + 6);
-  doc.text("Rate", col.rate, y + 6);
-  doc.text("Total", col.total, y + 6);
+const tableX = 40;
+const tableWidth = pageWidth - 80;
+const rowHeight = 22;
+
+// Column positions
+const col = {
+  no: tableX,
+  item: tableX + 40,
+  qty: tableX + 260,
+  rate: tableX + 320,
+  total: tableX + 400,
+  end: tableX + tableWidth,
+};
+
+// -------- Header Row --------
+doc.rect(tableX, y, tableWidth, rowHeight).stroke();
+
+doc.font("Helvetica-Bold").fontSize(10);
+doc.text("No", col.no + 5, y + 6);
+doc.text("Particulars", col.item + 5, y + 6);
+doc.text("Qty", col.qty + 5, y + 6);
+doc.text("Rate", col.rate + 5, y + 6);
+doc.text("Total", col.total + 5, y + 6);
+
+// Vertical header lines
+[ col.item, col.qty, col.rate, col.total ].forEach(x => {
+  doc.moveTo(x, y).lineTo(x, y + rowHeight).stroke();
+});
+
+y += rowHeight;
+
+// -------- Table Rows --------
+doc.font("Helvetica").fontSize(9);
+
+items.forEach((it, i) => {
+  doc.rect(tableX, y, tableWidth, rowHeight).stroke();
+
+  doc.text(i + 1, col.no + 5, y + 6);
+  doc.text(it.plantName, col.item + 5, y + 6, { width: 190 });
+  doc.text(it.quantity.toString(), col.qty + 5, y + 6);
+  doc.text(it.rate.toFixed(2), col.rate + 5, y + 6);
+  doc.text(it.total.toFixed(2), col.total + 5, y + 6);
+
+  // Vertical row lines
+  [ col.item, col.qty, col.rate, col.total ].forEach(x => {
+    doc.moveTo(x, y).lineTo(x, y + rowHeight).stroke();
+  });
 
   y += rowHeight;
-  doc.font("Helvetica").fontSize(9);
+});
 
-  items.forEach((it, i) => {
-    doc.rect(40, y, pageWidth - 80, rowHeight).stroke();
-    doc.text(i + 1, col.no, y + 6);
-    doc.text(it.plantName, col.item, y + 6, { width: 200 });
-    doc.text(it.quantity, col.qty, y + 6);
-    doc.text(it.rate.toFixed(2), col.rate, y + 6);
-    doc.text(it.total.toFixed(2), col.total, y + 6);
-    y += rowHeight;
-  });
 
   // Total
   y += 20;
