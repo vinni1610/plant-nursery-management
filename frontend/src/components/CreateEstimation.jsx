@@ -51,7 +51,7 @@ export default function CreateEstimation() {
       quantity: 1,
       total: plant.price,
       search: plant.plantName,
-      selected: true, // ✅ closes dropdown
+      selected: true, // close dropdown
     };
     setItems(next);
   };
@@ -99,6 +99,8 @@ export default function CreateEstimation() {
       <h3 className="text-success mb-3">Create Estimation</h3>
 
       <form onSubmit={submit} className="card p-4 shadow-sm mb-5">
+
+        {/* CUSTOMER */}
         <div className="row mb-3">
           <div className="col-md-4">
             <input className="form-control" placeholder="Customer Name"
@@ -119,7 +121,7 @@ export default function CreateEstimation() {
           </div>
         </div>
 
-        {/* ================= ITEMS ================= */}
+        {/* ITEMS */}
         <div className="mb-3">
           <div className="d-flex justify-content-between mb-2">
             <h5>Estimation Items</h5>
@@ -128,77 +130,101 @@ export default function CreateEstimation() {
             </button>
           </div>
 
+          {/* DESKTOP HEADERS */}
+          {items.length > 0 && (
+            <div className="row fw-bold text-muted border-bottom pb-2 mb-2 d-none d-md-flex">
+              <div className="col-md-4">Plant</div>
+              <div className="col-md-2">Price</div>
+              <div className="col-md-2">Quantity</div>
+              <div className="col-md-2">Total</div>
+              <div className="col-md-2">Action</div>
+            </div>
+          )}
+
           {items.map((it, idx) => {
             const filteredPlants = plants.filter(p =>
               p.plantName.toLowerCase().includes(it.search.toLowerCase())
             );
 
             return (
-              <div key={idx} className="row g-2 mb-2 align-items-center">
-                {/* SEARCH */}
-                <div className="col-md-4 position-relative">
-                  <input
-                    className="form-control"
-                    placeholder="Search plant..."
-                    value={it.search}
-                    onChange={(e) => {
-                      const next = [...items];
-                      next[idx].search = e.target.value;
-                      next[idx].selected = false;
-                      setItems(next);
-                    }}
-                  />
+              <div key={idx} className="border rounded p-2 mb-3">
+                <div className="row g-2 align-items-center">
 
-                  {/* ✅ DROPDOWN */}
-                  {it.search && !it.selected && (
-                    <div className="list-group position-absolute w-100 shadow z-3">
-                      {filteredPlants.slice(0, 6).map((p) => (
-                        <button
-                          type="button"
-                          key={p.id}
-                          className="list-group-item list-group-item-action"
-                          onClick={() => selectPlant(idx, p)}
-                        >
-                          {p.plantName}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                  {/* PLANT */}
+                  <div className="col-md-4 position-relative">
+                    <div className="d-md-none fw-bold mb-1">Plant</div>
+                    <input
+                      className="form-control"
+                      placeholder="Search plant..."
+                      value={it.search}
+                      onChange={(e) => {
+                        const next = [...items];
+                        next[idx].search = e.target.value;
+                        next[idx].selected = false;
+                        setItems(next);
+                      }}
+                    />
 
-                {/* RATE */}
-                <div className="col-md-2">
-                  <input className="form-control" readOnly value={`₹ ${it.rate}`} />
-                </div>
+                    {!it.selected && it.search && (
+                      <div className="list-group position-absolute w-100 shadow z-3">
+                        {filteredPlants.slice(0, 6).map((p) => (
+                          <button
+                            type="button"
+                            key={p.id}
+                            className="list-group-item list-group-item-action"
+                            onClick={() => selectPlant(idx, p)}
+                          >
+                            {p.plantName}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
 
-                {/* QTY */}
-                <div className="col-md-2">
-                  <input type="number" className="form-control"
-                    min="1"
-                    value={it.quantity}
-                    onChange={(e) => onQtyChange(idx, e.target.value)} />
-                </div>
+                  {/* PRICE */}
+                  <div className="col-md-2">
+                    <div className="d-md-none fw-bold mb-1">Price</div>
+                    <input className="form-control" readOnly value={`₹ ${it.rate}`} />
+                  </div>
 
-                {/* TOTAL */}
-                <div className="col-md-2">
-                  <input className="form-control" readOnly value={`₹ ${it.total}`} />
-                </div>
+                  {/* QTY */}
+                  <div className="col-md-2">
+                    <div className="d-md-none fw-bold mb-1">Quantity</div>
+                    <input
+                      type="number"
+                      className="form-control"
+                      min="1"
+                      value={it.quantity}
+                      onChange={(e) => onQtyChange(idx, e.target.value)}
+                    />
+                  </div>
 
-                {/* REMOVE */}
-                <div className="col-md-2">
-                  <button type="button"
-                    className="btn btn-outline-danger btn-sm"
-                    onClick={() => removeItem(idx)}>
-                    ✕ Remove
-                  </button>
+                  {/* TOTAL */}
+                  <div className="col-md-2">
+                    <div className="d-md-none fw-bold mb-1">Total</div>
+                    <input className="form-control" readOnly value={`₹ ${it.total}`} />
+                  </div>
+
+                  {/* REMOVE */}
+                  <div className="col-md-2">
+                    <button
+                      type="button"
+                      className="btn btn-outline-danger btn-sm w-100"
+                      onClick={() => removeItem(idx)}
+                    >
+                      ✕ Remove
+                    </button>
+                  </div>
+
                 </div>
               </div>
             );
           })}
         </div>
 
+        {/* TOTAL */}
         <div className="text-end border-top pt-3">
-          <strong>Estimated Cost:  {subTotal.toFixed(2)}</strong>
+          <strong>Estimated Cost: ₹ {subTotal.toFixed(2)}</strong>
         </div>
 
         <button className="btn btn-success mt-3" disabled={!items.length}>
